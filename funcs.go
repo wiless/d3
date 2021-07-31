@@ -343,7 +343,7 @@ func FilterIndex(array interface{}, fn interface{}) []int {
 }
 
 func FlatMap(array interface{}, fieldname string) interface{} {
-	log.Printf("\n FlatMap()..")
+	// log.Printf("\n FlatMap()..")
 	tOfArray := reflect.TypeOf(array)
 
 	isArray := tOfArray.Kind() == reflect.Slice || tOfArray.Kind() == reflect.Array
@@ -379,7 +379,7 @@ func FlatMap(array interface{}, fieldname string) interface{} {
 
 func FindFirstIndex(array interface{}, fn interface{}) int {
 	var index int = -1
-	log.Printf(" FindFirstIndex()..")
+	// log.Printf(" FindFirstIndex()..")
 	tOfArray := reflect.TypeOf(array)
 	tOffn := reflect.TypeOf(fn)
 
