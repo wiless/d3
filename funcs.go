@@ -1,10 +1,21 @@
 package d3
 
 import (
+	"encoding/csv"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"reflect"
+
+	"github.com/jszwec/csvutil"
 )
+
+var er = func(err error) {
+	if err != nil {
+		log.Println("D3:Error ", err)
+	}
+}
 
 func Map(array interface{}, fn interface{}) interface{} {
 	// log.Printf("\n Map()..")
@@ -101,7 +112,7 @@ func Map(array interface{}, fn interface{}) interface{} {
 }
 
 func ForEach(array interface{}, fn interface{}) {
-	log.Printf("\n ForEach()..")
+	// log.Printf("\n ForEach()..")
 	tOfArray := reflect.TypeOf(array)
 	tOffn := reflect.TypeOf(fn)
 
@@ -149,7 +160,7 @@ func ForEach(array interface{}, fn interface{}) {
 		fnType = 2
 		// fmt.Printf("\nFunction TYPE 2 : (ind,elem)  : Element Type %v matches with Fn arg2 %v, arg 1=%v", elemType, tOffn.In(1), tOffn.In(0))
 	} else {
-		// fmt.Printf("\nError : Array Element %v DOES NOT MATCH with Fn arg %v", elemType, tOffn.In(0))
+		fmt.Printf("\nError : Array Element %v DOES NOT MATCH with Fn arg %v", elemType, tOffn.In(0))
 		return
 	}
 
@@ -167,6 +178,10 @@ func ForEach(array interface{}, fn interface{}) {
 	}
 
 }
+
+// func Sort(array interface{}, fn interface{}) interface{} {
+
+// }
 
 func Filter(array interface{}, fn interface{}) interface{} {
 	// log.Printf("\n Map()..")
@@ -509,4 +524,133 @@ func FindFirst(array interface{}, fn interface{}) interface{} {
 		return nil
 	}
 	return resultValue.Interface()
+}
+
+func ForEachParse(fname string, fn interface{}) {
+
+	// log.Printf("\n ForEach()..")
+	tOffn := reflect.TypeOf(fn)
+
+	fnVal := reflect.ValueOf(fn)
+
+	// resultValue := reflect.MakeSlice(tOfArray, 0, avalue.Cap())
+
+	// fmt.Printf("\n INPUT = arg1 = %v and arg2 =  %v  ", tOfArray, tOffn)
+	// fmt.Printf("\n Kind arg1 %s ", tOfArray.Kind())
+	// fmt.Printf("\n Kind arg2  %s ", tOffn.Kind())
+
+	// fmt.Printf("\n ARRAY of type %s ", elemType)
+	// fmt.Printf("\n Value / Handle of Function   %v ", fnVal)
+	// fmt.Printf("\n Fn : Input Args:%d =", tOffn.NumIn())
+	// for i := 0; i < tOffn.NumIn(); i++ {
+	// 	fmt.Printf("\t %d=>%v,", i, tOffn.In(i))
+	// }
+	// fmt.Printf("\n Fn : Output Args:%d =", tOffn.NumOut())
+	// for i := 0; i < tOffn.NumOut(); i++ {
+	// 	fmt.Printf("\t %d=>%v,", i, tOffn.Out(i))
+	// }
+
+	if tOffn.NumIn() == 0 {
+		fmt.Println("ForEach needs Fn with 1 or 2 input args")
+		return
+	}
+
+	var fnType int = 1
+	/// Function Argument must match Element type of the Array {
+	if tOffn.NumIn() == 1 {
+		fnType = 1
+		// fmt.Printf("\nFunction TYPE 1 : (elem) : Element Type %v matches with Fn arg1 %v", elemType, tOffn.In(0), tOffn.In(1))
+	} else if tOffn.NumIn() == 2 && tOffn.In(0).Kind() == reflect.Int {
+		// Expect second argument of type "struct"
+		fnType = 2
+		// fmt.Printf("\nFunction TYPE 2 : (ind,elem)  : Element Type %v matches with Fn arg2 %v, arg 1=%v", elemType, tOffn.In(1), tOffn.In(0))
+	} else {
+		// fmt.Printf("\nError : Array Element %v DOES NOT MATCH with Fn arg %v", elemType, tOffn.In(0))
+		return
+	}
+
+	var elemType reflect.Type
+	elemType = tOffn.In(0)
+
+	fd, err := os.Open(fname)
+	er(err)
+	csvReader := csv.NewReader(fd)
+
+	dec, err := csvutil.NewDecoder(csvReader)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	header := dec.Header()
+	_ = header
+	var i int = 0
+	// _ = fnVal
+	elemValue := reflect.New(elemType)
+	// fmt.Printf("\nType of Fn Arg is %v", elemType)
+	// fmt.Printf("\nType of New Variable is %v | kind =%v", elemValue.Type(), elemType.Kind())
+
+	for {
+
+		// u := User{OtherData: make(map[string]string)}
+		// element := reflect.New()
+
+		u := elemValue.Interface()
+
+		if err := dec.Decode(u); err == io.EOF {
+			break
+		} else if err != nil {
+			log.Fatal(err)
+		}
+		// fmt.Printf("\nRead File : %#v", u)
+		obj := elemValue.Elem()
+		// fmt.Printf("\n OBJ %#v", obj)
+		if fnType == 1 {
+			fnVal.Call([]reflect.Value{obj})
+		} else {
+			var indx = reflect.ValueOf(i)
+			fnVal.Call([]reflect.Value{indx, obj})
+			i++
+		}
+
+	}
+
+}
+
+// SubStruct creates array of objs with selected properties "fields" from the input array of objects
+func SubStruct(v interface{}, fields ...string) interface{} {
+	// fmt.Printf("\n Input : %#v", v)
+	tOfv := reflect.TypeOf(v)
+	var subfields []reflect.StructField
+	var fnames []string
+	for _, f := range fields {
+		ftype, ok := tOfv.FieldByName(f)
+		if ok {
+			subfields = append(subfields, ftype)
+			fnames = append(fnames, f)
+		}
+	}
+	resultType := reflect.StructOf(subfields)
+	elemVal := reflect.ValueOf(v)
+	result := reflect.New(resultType)
+
+	for _, f := range fnames {
+		inpval := elemVal.FieldByName(f)
+		// fmt.Printf("\n\nField  %v is %v ", f, inpval)
+		newfield := result.Elem().FieldByName(f)
+		// fmt.Printf("\nBefore Setting  %v is %#v ", f, newfield)
+		if newfield.CanSet() {
+			newfield.Set(inpval)
+			// fmt.Printf("\nSetting  %v is %#v ", f, newfield)
+		}
+
+	}
+
+	retobj := result.Elem()
+
+	// fmt.Printf("\n Created : %#v", retobj)
+
+	return retobj.Interface()
+	// for i := 0; i < N; i++ {
+	// 	tOfv.FieldByName()
+	// }
 }
