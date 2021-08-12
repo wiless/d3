@@ -74,7 +74,7 @@ func Map(array interface{}, fn interface{}) interface{} {
 
 	arrayvalues := reflect.ValueOf(array)
 	toFnResults := reflect.SliceOf(fnOutputType)
-	fmt.Printf("\nMap(): Result Type %v", toFnResults)
+	// fmt.Printf("\nMap(): Result Type %v", toFnResults)
 
 	resultValue := reflect.MakeSlice(toFnResults, 0, arrayvalues.Cap())
 
@@ -458,7 +458,7 @@ func FindFirstIndex(array interface{}, fn interface{}) int {
 }
 
 func FindFirst(array interface{}, fn interface{}) interface{} {
-	log.Printf("\n FindFirst()..")
+	// log.Printf("\n FindFirst()..")
 	tOfArray := reflect.TypeOf(array)
 	tOffn := reflect.TypeOf(fn)
 
@@ -521,7 +521,8 @@ func FindFirst(array interface{}, fn interface{}) interface{} {
 
 	}
 	if !found {
-		return nil
+		return resultValue.Elem().Interface()
+
 	}
 	return resultValue.Interface()
 }
@@ -654,3 +655,41 @@ func SubStruct(v interface{}, fields ...string) interface{} {
 	// 	tOfv.FieldByName()
 	// }
 }
+
+func CSV(fname string, v interface{}) interface{} {
+
+	fid, err := os.Open(fname)
+	er(err)
+
+	data, err := os.ReadFile(fname)
+	er(err)
+
+	// var sls []SLSprofile
+	err = csvutil.Unmarshal(data, v)
+	er(err)
+
+	// fmt.Printf("LoadCSV %#v", v)
+	defer fid.Close()
+
+	fid.Close()
+	return v
+}
+
+// func CSVsave(fname string, v interface{}) {
+
+// 	fid, err := os.Create(fname)
+// 	er(err)
+// 	defer fid.Close()
+
+// 	// str, _ := vlib.Struct2HeaderLine(v)
+// 	// fid.WriteString("\n" + str)
+
+// 	for i := 0; i < count; i++ {
+
+// 	}, func(d interface{}) {
+// 		fmt.Println("\nd=", d)
+// 		str, _ := vlib.Struct2String(d)
+// 		fid.WriteString("\n" + str)
+// 	})
+
+// }
