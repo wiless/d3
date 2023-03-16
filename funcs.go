@@ -664,15 +664,22 @@ func CSV(fname string, v interface{}) interface{} {
 	data, err := os.ReadFile(fname)
 	er(err)
 
-	// var sls []SLSprofile
 	err = csvutil.Unmarshal(data, v)
 	er(err)
 
-	// fmt.Printf("LoadCSV %#v", v)
 	defer fid.Close()
 
 	fid.Close()
 	return v
+}
+
+func CSVsave(fname string, v interface{}) {
+	fmt.Println(reflect.TypeOf(v))
+	fid, err := os.Create(fname)
+	er(err)
+	defer fid.Close()
+	ba, _ := csvutil.Marshal(v)
+	fid.Write(ba)
 }
 
 // func CSVsave(fname string, v interface{}) {
