@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"reflect"
 
@@ -15,6 +16,16 @@ var er = func(err error) {
 	if err != nil {
 		log.Println("D3:Error ", err)
 	}
+}
+
+func Range(start, stop float64, step float64) []float64 {
+	var size = int(math.Floor((stop - start) / step))
+	res := make([]float64, size)
+	for i := range res {
+		res[i] = start + step*float64(i)
+	}
+	return res
+
 }
 
 func Map(array interface{}, fn interface{}) interface{} {
